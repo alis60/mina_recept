@@ -253,12 +253,19 @@ with flik2:
                 recept_id = r.get('id')
                 
                 with st.expander(f"📌 {titel} ({kategori})"):
-                    st.markdown(r.get("text", ""), unsafe_allow_html=True)
+                    # Säkerställ att texten är en sträng innan vi visar den
+                    text_content = r.get("text", "")
+                    if text_content is None:
+                        text_content = ""
+                    elif not isinstance(text_content, str):
+                        text_content = str(text_content)
+                    
+                    st.markdown(text_content, unsafe_allow_html=True)
                     
                     st.divider()
                     
                     # Förbered text för delning
-                    del_text = f"Recept: {titel}\n\n{kategori}\n\n{r.get('text', '')}"
+                    del_text = f"Recept: {titel}\n\n{kategori}\n\n{text_content}"
                     
                     # Delnings- och utskriftsfunktioner i två kolumner
                     col_share, col_print = st.columns(2)
@@ -296,8 +303,8 @@ with flik2:
                         components.html(share_html, height=50)
                     
                     with col_print:
-                        # Utskriftsfunktion
-                        recept_text_for_print = r.get('text', '').replace('\n', '\\n').replace("'", "\\'")
+                        # Utskriftsfunktion - Säkerställ att texten är en sträng
+                        text_for_print = text_content.replace('\n', '\\n').replace("'", "\\'")
                         print_html = f"""
                         <script>
                         function printRecipe_{recept_id.replace('-', '_')}() {{
@@ -317,7 +324,7 @@ with flik2:
                             <body>
                                 <h1>{titel}</h1>
                                 <h2>{kategori}</h2>
-                                <div>{recept_text_for_print}</div>
+                                <div>{text_for_print}</div>
                                 <script>
                                     window.onload = function() {{
                                         window.print();
@@ -361,7 +368,7 @@ with flik3:
             användare_dict = {}
             for rec in publika_recept:
                 uid = rec.get("user_id")
-                if uid not in användare_dict:
+                if uid not i användare_dict:
                     användare_dict[uid] = []
                 användare_dict[uid].append(rec)
             
@@ -391,11 +398,18 @@ with flik3:
                     recept_id = r.get('id')
                     
                     with st.expander(f"📌 {titel} ({kategori})"):
-                        st.markdown(r.get("text", ""), unsafe_allow_html=True)
+                        # Säkerställ att texten är en sträng
+                        text_content = r.get("text", "")
+                        if text_content is None:
+                            text_content = ""
+                        elif not isinstance(text_content, str):
+                            text_content = str(text_content)
+                            
+                        st.markdown(text_content, unsafe_allow_html=True)
                         
                         st.divider()
                         
-                        del_text_d = f"Recept: {titel}\n\n{kategori}\n\n{r.get('text', '')}"
+                        del_text_d = f"Recept: {titel}\n\n{kategori}\n\n{text_content}"
                         
                         # Delnings- och utskriftsfunktioner i två kolumner
                         col_share_d, col_print_d = st.columns(2)
@@ -433,7 +447,7 @@ with flik3:
                         
                         with col_print_d:
                             # Utskriftsfunktion för delade recept
-                            recept_text_for_print_d = r.get('text', '').replace('\n', '\\n').replace("'", "\\'")
+                            text_for_print_d = text_content.replace('\n', '\\n').replace("'", "\\'")
                             print_html_d = f"""
                             <script>
                             function printRecipeD_{recept_id.replace('-', '_')}() {{
@@ -453,7 +467,7 @@ with flik3:
                                 <body>
                                     <h1>{titel}</h1>
                                     <h2>{kategori}</h2>
-                                    <div>{recept_text_for_print_d}</div>
+                                    <div>{text_for_print_d}</div>
                                     <script>
                                         window.onload = function() {{
                                             window.print();
