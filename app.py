@@ -446,10 +446,9 @@ with flik3:
                             components.html(share_html_d, height=50)
                         
                         with col_print_d:
-                        # Utskriftsfunktion för delade recept
-                        # Utskriftsfunktion - Säkerställ att texten är en sträng
-                          text_for_print_d = str(text_content).replace('\n', '\\n').replace("'", "\\'")
-                          print_html_d = f"""
+                            # Utskriftsfunktion för delade recept
+                            text_for_print_d = str(text_content).replace('\n', '\\n').replace("'", "\\'")
+                            print_html_d = f"""
                             <script>
                             function printRecipeD_{recept_id.replace('-', '_')}() {{
                                 const printContent = `
