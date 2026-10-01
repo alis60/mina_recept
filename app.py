@@ -1,4 +1,7 @@
 # coding=utf-8
+PRINT_ICON = "🖨️"
+SHARE_ICON = "📤"
+DELETE_ICON = "🗑️"
 import streamlit as st
 from google import genai
 from PIL import Image
@@ -298,7 +301,7 @@ with flik2:
                         
                         <button onclick="shareRecipe_{recept_id.replace('-', '_')}()" 
                                 style="background-color: #007AFF; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); width: 100%;">
-                            📤 Dela recept
+                            f"{SHARE_ICON} Dela recept"
                         </button>
                         """
                         components.html(share_html, height=50)
@@ -344,12 +347,12 @@ with flik2:
                         
                         <button onclick="printRecipe_{recept_id.replace('-', '_')}()" 
                                 style="background-color: #34C759; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); width: 100%;">
-                            🖨️ Skriv ut recept
+                            f"{PRINT_ICON} Skriv ut recept"
                         </button>
                         """
                         components.html(print_html, height=50)
                     
-                    if st.button("🗑️ Radera recept", key=f"del_{recept_id}"):
+                    if st.button("f"{DELETE_ICON} Radera recept", key=f"del_{recept_id}"):
                         supabase.table("recept").delete().eq("id", recept_id).execute()
                         st.success("Receptet raderades!")
                         st.rerun()
@@ -443,7 +446,8 @@ with flik3:
                             
                             <button onclick="shareRecipeD_{recept_id.replace('-', '_')}()" 
                                     style="background-color: #007AFF; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); width: 100%;">
-                                📤 Dela recept
+                                f"{SHARE_ICON} Dela recept"
+                                
                             </button>
                             """
                             components.html(share_html_d, height=50)
@@ -492,7 +496,7 @@ with flik3:
                             
                             <button onclick="printRecipeD_{recept_id.replace('-', '_')}()" 
                                     style="background-color: #34C759; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); width: 100%;">
-                                🖨️ Skriv ut recept
+                                f"{PRINT_ICON} Skriv ut recept"
                             </button>
                             """
                             components.html(print_html_d, height=50)
