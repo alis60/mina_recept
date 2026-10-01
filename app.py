@@ -297,10 +297,10 @@ with flik2:
                     
                     with col_print:
                         # Utskriftsfunktion
+                        recept_text_for_print = r.get('text', '').replace('\n', '\\n').replace("'", "\\'")
                         print_html = f"""
                         <script>
                         function printRecipe_{recept_id.replace('-', '_')}() {{
-                            // Skapa en ny sida för utskrift
                             const printContent = `
                             <html>
                             <head>
@@ -317,7 +317,7 @@ with flik2:
                             <body>
                                 <h1>{titel}</h1>
                                 <h2>{kategori}</h2>
-                                <div>{r.get('text', '').replace(/\n/g, '<br>')}</div>
+                                <div>{recept_text_for_print}</div>
                                 <script>
                                     window.onload = function() {{
                                         window.print();
@@ -433,10 +433,10 @@ with flik3:
                         
                         with col_print_d:
                             # Utskriftsfunktion för delade recept
+                            recept_text_for_print_d = r.get('text', '').replace('\n', '\\n').replace("'", "\\'")
                             print_html_d = f"""
                             <script>
                             function printRecipeD_{recept_id.replace('-', '_')}() {{
-                                // Skapa en ny sida för utskrift
                                 const printContent = `
                                 <html>
                                 <head>
@@ -453,7 +453,7 @@ with flik3:
                                 <body>
                                     <h1>{titel}</h1>
                                     <h2>{kategori}</h2>
-                                    <div>{r.get('text', '').replace(/\n/g, '<br>')}</div>
+                                    <div>{recept_text_for_print_d}</div>
                                     <script>
                                         window.onload = function() {{
                                             window.print();
