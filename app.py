@@ -1,150 +1,377 @@
 import streamlit as st
-import google.generativeai as genai
+from google import genai
 from PIL import Image
 import os
+import json
+import pandas as pd
 from supabase import create_client, Client
+import streamlit.components.v1 as components
+import html
 
-
-# --- Konfiguration & Initiering ---
-# (Se till att dina secrets är korrekt satta i st.secrets)
-# Ändra till detta högst upp i app.py:
-SUPABASE_URL = st.secrets["supabase"]["url"]
-SUPABASE_KEY = st.secrets["supabase"]["key"]
-GEMINI_API_KEY = st.secrets["gemini"]["api_key"]
-
+# --- SUPABASE & GEMINI CONFIG ---
+SUPABASE_URL = st.secrets.get("SUPABASE_URL", os.environ.get("SUPABASE_URL"))
+SUPABASE_KEY = st.secrets.get("SUPABASE_KEY", os.environ.get("SUPABASE_KEY"))
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-genai.configure(api_key=GEMINI_API_KEY)
 
-# Konfigurera sidan
-st.set_page_config(page_title="Receptbok", page_icon="📖", layout="centered")
+gemini_api_key = st.secrets.get("GEMINI_API_KEY", os.environ.get("GEMINI_API_KEY"))
+client = genai.Client(api_key=gemini_api_key)
 
-# --- CSS för snyggare mobilanpassning (LÄGG IN DETTA HÄR) ---
-st.markdown(
-    """
-    <style>
-    .block-container {
-        padding-left: 1rem !important;
-        padding-right: 1rem !important;
-        max-width: 700px;
-    }
-    .stAlert {
-        word-break: break-word;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
-)
+st.title("📖 Receptboken med AI-skanning")
 
-# --- Session State för Inloggning & Navigation ---
+# --- INLOGGNINGSHANTERING ---
 if "user" not in st.session_state:
-    st.session_state.user = None
+    st.session_state["user"] = None
 
-if "nav_choice" not in st.session_state:
-    st.session_state.nav_choice = "Mina recept"
-
-# Enkel inloggningsskärm om ej inloggad
-if not st.session_state.user:
-    st.subheader("Logga in i Kokboken")
-    email = st.text_input("E-post")
-    password = st.text_input("Lösenord", type="password")
-    if st.button("Logga in"):
-        try:
-            res = supabase.auth.sign_in_with_password({"email": email, "password": password})
-            st.session_state.user = res.user
-            st.rerun()
-        except Exception as e:
-            st.error(f"Inloggningsfel: {e}")
+if not st.session_state["user"]:
+    st.subheader("🔑 Logga in")
+    
+    with st.form("login_form"):
+        email = st.text_input("E-post", key="login_email", autocomplete="email")
+        password = st.text_input("Lösenord", type="password", key="login_pass", autocomplete="current-password")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            submit_login = st.form_submit_button("Logga in")
+        with col2:
+            submit_signup = st.form_submit_button("Skapa konto")
+            
+        if submit_login:
+            try:
+                auth_res = supabase.auth.sign_in_with_password({"email": email, "password": password})
+                st.session_state["user"] = auth_res.user
+                st.success("Inloggad!")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Fel vid inloggning: {e}")
+                
+        if submit_signup:
+            try:
+                auth_res = supabase.auth.sign_up({"email": email, "password": password})
+                st.info("Konto skapat! Om e-postbekräftelse krävs, kolla din inkorg.")
+            except Exception as e:
+                st.error(f"Kunde inte skapa konto: {e}")
+                
     st.stop()
 
-st.markdown("### 📖 Receptbok")
-
-if st.button("📖 Mina recept", use_container_width=True):
-    st.session_state.nav_choice = "Mina recept"
-
-if st.button("➕ Lägg till nytt", use_container_width=True):
-    st.session_state.nav_choice = "Lägg till nytt"
-
-if st.button("⚙️ Logga ut", use_container_width=True):
-    supabase.auth.sign_out()
-    st.session_state.user = None
-    st.rerun()
+# Status för inloggad användare
+col_user, col_logout = st.columns([3, 1])
+with col_user:
+    st.write(f"Inloggad som: **{st.session_state['user'].email}**")
+with col_logout:
+    if st.button("Logga ut"):
+        supabase.auth.sign_out()
+        # Rensa session state
+        for key in list(st.session_state.keys()):
+            del st.session_state[key]
+        st.rerun()
 
 st.divider()
 
-# --- VY 1: LÄGG TILL NYTT RECEPT ---
-if st.session_state.nav_choice == "Lägg till nytt":
-    st.header("Lägg till nytt recept")
+if "uploader_key" not in st.session_state:
+    st.session_state["uploader_key"] = 0
+
+# --- HUVUDAPP (FLIKAR) ---
+flik1, flik2, flik3 = st.tabs(["📷 Skanna Recept", "📚 Mina Recept", "👥 Delade Böcker"])
+
+with flik1:
+    st.header("Skanna handskrivet recept")
     
-    uploaded_file = st.file_uploader("Ladda upp bild på receptlapp", type=["jpg", "jpeg", "png"])
+    upploadad_bild = st.file_uploader(
+        "Välj bild på recept...", 
+        type=["jpg", "jpeg", "png"], 
+        key=f"uploader_{st.session_state['uploader_key']}"
+    )
     
-    if uploaded_file:
-        image = Image.open(uploaded_file)
-        # Automatiska bildoptimeringar (skala ner till max 1000px bredd för att spara lagring)
-        image.thumbnail((1000, 1000))
-        st.image(image, caption="Uppladdad bild", use_container_width=True)
+    if upploadad_bild:
+        bild = Image.open(uppladdad_bild)
+        # Optimera bildstorlek
+        if bild.size[0] > 1500 or bild.size[1] > 1500:
+            bild.thumbnail((1500, 1500))
+        st.image(bild, caption="Uppladdad bild (optimerad)", width=300)
         
-        if st.button("Analysera recept med Gemini"):
-            with st.spinner("Analysera text och näringsinnehåll..."):
+        if st.button("Analysera recept med AI", key="btn_analysera"):
+            with st.spinner("Analyserar handstil och beräknar näringsvärden..."):
                 try:
-                    model = genai.GenerativeModel('gemini-3.8-flash')
                     prompt = (
-                        "Analysera bilden på detta recept. Extrahera följande och svara i ren text (använd inte markdown-block):\n"
-                        "1. Receptets namn\n"
-                        "2. Ingredienser\n"
-                        "3. Instruktioner\n"
-                        "4. Uppskattad kategori (t.ex. Huvudrätt, Frukost, Soppa, Bakverk, Efterrätt)\n"
-                        "5. Uppskattat näringsinnehåll per portion (kalorier, protein, kolhydrater, fett)"
+                        "Analysera denna bild av ett recept. "
+                        "Returnera svaret strikt som en JSON-struktur med följande nycklar:\n"
+                        "- 'titel': Receptets namn\n"
+                        "- 'kategori': Passande kategori (t.ex. Huvudrätt, Efterrätt, Bakverk)\n"
+                        "- 'text': Renskriven version av receptet med ingredienser och instruktioner.\n"
+                        "- 'naring': Ett objekt med uppskattade näringsvärden uppdelade i 'per_portion' och 'per_100g'. "
+                        "Inkludera nycklarna: 'energi' (kcal/kJ), 'protein' (g), 'kolhydrater' (g), 'socker' (g), "
+                        "'fett' (g), 'mattat_fett' (g), 'fiber' (g), 'salt' (g).\n"
+                        "Svara ENDAST med giltig JSON utan markdown-kodblock."
                     )
-                    response = model.generate_content([image, prompt])
-                    st.session_state.ai_result = response.text
+                    
+                    response = client.models.generate_content(
+                        model='gemini-2.5-flash',
+                        contents=[bild, prompt]
+                    )
+                    
+                    raw_text = response.text.strip()
+                    if raw_text.startswith("```json"):
+                        raw_text = raw_text.replace("```json", "").replace("```", "").strip()
+                    
+                    try:
+                        recept_data = json.loads(raw_text)
+                        st.session_state["analyserat_recept"] = recept_data
+                        st.success("Receptet har analyserats!")
+                    except json.JSONDecodeError:
+                        st.error("Kunde inte tolka AI-svaret. Försök igen med en tydligare bild.")
+                    
                 except Exception as e:
-                    st.error(f"Ett fel uppstod vid analys: {e}")
+                    st.error(f"Ett fel uppstod vid anropet till Gemini: {e}")
 
-    if "ai_result" in st.session_state:
-        st.subheader("Analysresultat")
-        recept_text = st.text_area("Grändskota/redigera texten innan Spara", value=st.session_state.ai_result, height=250)
-        
-        # Kategorival inför sparande
-        kategori = st.selectbox("Kategori", ["Huvudrätt", "Frukost", "Soppa", "Bakverk", "Efterrätt", "Tillbehör", "Övrigt"])
-        titel = st.text_input("Receptets titel", value="Mitt nya recept")
-        
-        if st.button("Spara recept i kokboken"):
-            try:
-                # Spara till Supabase (utan RLS-krångel om tabellen är öppen eller kopplad till auth.uid())
-                data = {
-                    "user_id": st.session_state.user.id,
-                    "titel": titel,
-                    "kategori": kategori,
-                    "innehall": recept_text
+        if "analyserat_recept" in st.session_state:
+            rec = st.session_state["analyserat_recept"]
+            
+            st.subheader("Granska & Spara")
+            
+            col_titel, col_kat = st.columns([2, 1])
+            with col_titel:
+                titel_input = st.text_input("Titel", value=rec.get("titel", ""))
+            with col_kat:
+                kategori_input = st.text_input("Kategori", value=rec.get("kategori", "Övrigt"))
+            
+            st.markdown("### 📊 Näringsinnehåll")
+            
+            naring_data = rec.get("naring", {})
+            p_data = naring_data.get("per_portion", {})
+            h_data = naring_data.get("per_100g", {})
+            
+            df_naring = pd.DataFrame({
+                "Näringsämne (Makros)": [
+                    "⚡ Energi", "🥩 Protein", "🍞 Kolhydrater", 
+                    "└ varav sockerarter", "🥑 Fett", "└ varav mättat fett", 
+                    "🌾 Fiber", "🧂 Salt"
+                ],
+                "Per 100 g": [
+                    h_data.get("energi", "-"), h_data.get("protein", "-"), 
+                    h_data.get("kolhydrater", "-"), h_data.get("socker", "-"), 
+                    h_data.get("fett", "-"), h_data.get("mattat_fett", "-"), 
+                    h_data.get("fiber", "-"), h_data.get("salt", "-")
+                ],
+                "Per Portion": [
+                    p_data.get("energi", "-"), p_data.get("protein", "-"), 
+                    p_data.get("kolhydrater", "-"), p_data.get("socker", "-"), 
+                    p_data.get("fett", "-"), p_data.get("mattat_fett", "-"), 
+                    p_data.get("fiber", "-"), p_data.get("salt", "-")
+                ]
+            })
+            
+            st.table(df_naring)
+            
+            text_input = st.text_area("Recepttext (Ingredienser & Instruktioner)", value=rec.get("text", ""), height=220)
+            
+            if st.button("💾 Spara till databasen", key="btn_spara"):
+                naring_table_md = (
+                    "\n\n### 📊 Näringsinnehåll\n"
+                    "| Näringsämne (Makros) | Per 100 g | Per Portion |\n"
+                    "| :--- | :---: | :---: |\n"
+                    f"| ⚡ Energi | {h_data.get('energi', '-')} | {p_data.get('energi', '-')} |\n"
+                    f"| 🥩 Protein | {h_data.get('protein', '-')} | {p_data.get('protein', '-')} |\n"
+                    f"| 🍞 Kolhydrater | {h_data.get('kolhydrater', '-')} | {p_data.get('kolhydrater', '-')} |\n"
+                    f"| &nbsp;&nbsp;&nbsp;&nbsp;└ varav sockerarter | {h_data.get('socker', '-')} | {p_data.get('socker', '-')} |\n"
+                    f"| 🥑 Fett | {h_data.get('fett', '-')} | {p_data.get('fett', '-')} |\n"
+                    f"| &nbsp;&nbsp;&nbsp;&nbsp;└ varav mättat fett | {h_data.get('mattat_fett', '-')} | {p_data.get('mattat_fett', '-')} |\n"
+                    f"| 🌾 Fiber | {h_data.get('fiber', '-')} | {p_data.get('fiber', '-')} |\n"
+                    f"| 🧂 Salt | {h_data.get('salt', '-')} | {p_data.get('salt', '-')} |\n"
+                )
+                
+                full_text = f"{text_input}{naring_table_md}"
+                
+                data_att_spara = {
+                    "user_id": st.session_state["user"].id,
+                    "titel": titel_input,
+                    "kategori": kategori_input,
+                    "text": full_text,
+                    "is_public": False  # Nya recept är inte publika som standard
                 }
-                supabase.table("recept").insert(data).execute()
-                st.success("Receptet sparades framgångsrikt!")
-                del st.session_state.ai_result
-                st.session_state.nav_choice = "Mina recept"
-                st.rerun()
-            except Exception as e:
-                st.error(f"Kunde inte spara till databasen: {e}")
+                
+                try:
+                    supabase.table("recept").insert(data_att_spara).execute()
+                    st.success("Receptet har sparats!")
+                    
+                    del st.session_state["analyserat_recept"]
+                    st.session_state["uploader_key"] += 1
+                    
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Kunde inte spara till Supabase: {e}")
 
-# --- VY 2: MINA RECEPT ---
-elif st.session_state.nav_choice == "Mina recept":
+with flik2:
     st.header("Mina sparade recept")
     
+    with st.expander("⚙️ Inställningar för delning"):
+        # Hämta nuvarande delningsstatus för användaren
+        try:
+            # Kontrollera om användaren har några recept och om de är publika
+            user_check = supabase.table("recept").select("is_public").eq("user_id", st.session_state["user"].id).execute()
+            if user_check.data and len(user_check.data) > 0:
+                # Kontrollera om något recept är publikt
+                nuvarande_status = any(r.get("is_public", False) for r in user_check.data)
+            else:
+                nuvarande_status = False
+        except Exception as e:
+            st.error(f"Kunde inte läsa delningsstatus: {e}")
+            nuvarande_status = False
+
+        gör_publik = st.checkbox("🌍 Gör hela min receptbok publik (synlig under Delade böcker)", value=nuvarande_status)
+        
+        if st.button("Uppdatera delningsstatus"):
+            try:
+                # Uppdatera alla recept för användaren
+                supabase.table("recept").update({"is_public": gör_publik}).eq("user_id", st.session_state["user"].id).execute()
+                st.success("Delningsinställningen har sparats!")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Kunde inte uppdatera delningsstatus: {e}")
+
+    sokord = st.text_input("🔍 Sök i dina recept...", "", key="sok_recept")
+    
     try:
-        response = supabase.table("recept").select("*").eq("user_id", st.session_state.user.id).execute()
-        recept_lista = response.data
+        # Använd bättre sökfunktion
+        if sokord:
+            res = supabase.table("recept").select("*").eq("user_id", st.session_state["user"].id).ilike("titel", f"%{sokord}%").execute()
+        else:
+            res = supabase.table("recept").select("*").eq("user_id", st.session_state["user"].id).execute()
+        
+        recept_lista = res.data
         
         if not recept_lista:
-            st.info("Du har inga sparade recept ännu. Klicka på 'Lägg till nytt' för att börja!")
+            st.info("Inga sparade recept hittades.")
         else:
-            # Enkel sök- och filtrering
-            sokord = st.text_input("🔍 Sök bland recept", "")
-            
             for r in recept_lista:
-                if sokord.lower() in r.get("titel", "").lower() or sokord.lower() in r.get("innehall", "").lower():
-                    with st.expander(f"📌 {r.get('titel', 'Utan namn')} ({r.get('kategori', 'Övrigt')})"):
-                        st.text(r.get("innehall"))
-                        if st.button("Radera recept", key=f"del_{r.get('id')}"):
-                            supabase.table("recept").delete().eq("id", r.get("id")).execute()
-                            st.rerun()
+                titel = r.get("titel") or "Namnlöst recept"
+                kategori = r.get("kategori") or "Övrigt"
+                
+                with st.expander(f"📌 {titel} ({kategori})"):
+                    st.markdown(r.get("text", ""), unsafe_allow_html=True)
+                    
+                    st.divider()
+                    
+                    recept_id = r.get('id')
+                    del_text = f"Recept: {titel} ({kategori})\n\n{r.get('text', '')}"
+                    
+                    # Förbättrad delningsfunktion med Web Share API
+                    share_html = f"""
+                    <script src="https://cdn.jsdelivr.net/npm/@webcomponents/webcomponentsjs@2.5.0/webcomponents-lite.js"></script>
+                    <script>
+                    function shareRecipe() {{
+                        const textToShare = {json.dumps(del_text)};
+                        const title = '{titel}';
+                        
+                        if (navigator.share) {{
+                            navigator.share({{
+                                title: title,
+                                text: textToShare
+                            }}).catch(err => console.log('Error sharing:', err));
+                        }} else {{
+                            // Fallback för äldre webbläsare
+                            const textarea = document.createElement('textarea');
+                            textarea.value = textToShare;
+                            document.body.appendChild(textarea);
+                            textarea.select();
+                            document.execCommand('copy');
+                            document.body.removeChild(textarea);
+                            alert('Receptet har kopierats till urklipp!');
+                        }}
+                    }}
+                    </script>
+                    <button onclick="shareRecipe()" style="background-color: #ff4b4b; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        📤 Dela recept
+                    </button>
+                    """
+                    components.html(share_html, height=50)
+                    
+                    if st.button("🗑️ Radera recept", key=f"del_{recept_id}"):
+                        supabase.table("recept").delete().eq("id", recept_id).execute()
+                        st.success("Receptet raderades!")
+                        st.rerun()
+                        
     except Exception as e:
-        st.error(f")Kunde inte hämta recept från databasen: {e}")
+        st.error(f"Kunde inte hämta recept från Supabase: {e}")
+
+with flik3:
+    st.header("👥 Delade receptböcker")
+    st.markdown("Här kan du välja och läsa andra användares publika receptböcker via rullgardinsmenyn nedan.")
+    
+    try:
+        publika_res = supabase.table("recept").select("*").eq("is_public", True).execute()
+        publika_recept = publika_res.data
+        
+        if not publika_recept:
+            st.info("Inga publika receptböcker hittades just nu.")
+        else:
+            användare_dict = {}
+            for rec in publika_recept:
+                uid = rec.get("user_id")
+                if uid not in användare_dict:
+                    användare_dict[uid] = []
+                användare_dict[uid].append(rec)
+            
+            # Försök hämta användarinformation för bättre namn
+            användar_info = {}
+            for uid in användare_dict.keys():
+                try:
+                    user_info = supabase.auth.admin.get_user_by_id(uid)
+                    email = user_info.user.email if user_info.user else "Okänd användare"
+                    användar_info[uid] = email
+                except:
+                    användar_info[uid] = f"Användare ({uid[:8]}...)"
+            
+            vald_användare = st.selectbox(
+                "Välj receptbok att kika i:", 
+                options=list(användare_dict.keys()),
+                format_func=lambda x: användar_info.get(x, f"Användare ({x[:8]}...)")
+            )
+            
+            if vald_användare:
+                st.divider()
+                st.subheader(f"📖 Receptsamling från {användar_info.get(vald_användare, 'Okänd användare')}")
+                
+                for r in användare_dict[vald_användare]:
+                    titel = r.get("titel") or "Namnlöst recept"
+                    kategori = r.get("kategori") or "Övrigt"
+                    
+                    with st.expander(f"📌 {titel} ({kategori})"):
+                        st.markdown(r.get("text", ""), unsafe_allow_html=True)
+                        
+                        st.divider()
+                        
+                        del_text_d = f"Recept: {titel} ({kategori})\n\n{r.get('text', '')}"
+                        
+                        # Förbättrad delningsfunktion för delade recept
+                        share_html_d = f"""
+                        <script src="https://cdn.jsdelivr.net/npm/@webcomponents/webcomponentsjs@2.5.0/webcomponents-lite.js"></script>
+                        <script>
+                        function shareRecipeD_{recept_id.replace('-', '_')}() {{
+                            const textToShare = {json.dumps(del_text_d)};
+                            const title = '{titel}';
+                            
+                            if (navigator.share) {{
+                                navigator.share({{
+                                    title: title,
+                                    text: textToShare
+                                }}).catch(err => console.log('Error sharing:', err));
+                            }} else {{
+                                // Fallback för äldre webbläsare
+                                const textarea = document.createElement('textarea');
+                                textarea.value = textToShare;
+                                document.body.appendChild(textarea);
+                                textarea.select();
+                                document.execCommand('copy');
+                                document.body.removeChild(textarea);
+                                alert('Receptet har kopierats till urklipp!');
+                            }}
+                        }}
+                        </script>
+                        <button onclick="shareRecipeD_{recept_id.replace('-', '_')}()" style="background-color: #ff4b4b; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                            📤 Dela recept
+                        </button>
+                        """
+                        components.html(share_html_d, height=50)
+                                
+    except Exception as e:
+        st.error(f"Kunde inte hämta delade recept: {e}")

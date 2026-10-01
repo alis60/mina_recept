@@ -1,4 +1,5 @@
 streamlit
-supabase
-google-generativeai
+google-genai
 pillow
+pandas
+supabase
