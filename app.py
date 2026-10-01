@@ -301,17 +301,20 @@ with flik2:
                         
                         <button onclick="shareRecipe_{recept_id.replace('-', '_')}()" 
                                 style="background-color: #007AFF; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); width: 100%;">
-                            f"{SHARE_ICON} Dela recept"
+                            {SHARE_ICON} Dela recept
                         </button>
                         """
                         components.html(share_html, height=50)
+                    
                     with col_print:
-                    # Utskriftsfunktion - Säkerställ att texten är en sträng
-                     try:
-                      text_for_print = str(text_content).replace('\n', '\\n').replace("'", "\\'")
-                    except Exception as e:
-                      st.error(f"Kunde inte förbereda utskrift: {e}")
-                      text_for_print = str(text_content)
+                        # Utskriftsfunktion - Säkerställ att texten är en sträng
+                        try:
+                            text_for_print = str(text_content).replace('\n', '\\n').replace("'", "\\'")
+                        except Exception as e:
+                            st.error(f"Kunde inte förbereda utskrift: {e}")
+                            text_for_print = str(text_content)
+                        
+                        print_html = f"""
                         <script>
                         function printRecipe_{recept_id.replace('-', '_')}() {{
                             const printContent = `
@@ -319,7 +322,7 @@ with flik2:
                             <head>
                                 <title>{titel}</title>
                                 <style>
-                                    body {{ font-family: Arial, sans-serif; margin: "20px"; }}
+                                    body {{ font-family: Arial, sans-serif; margin: 20px; }}
                                     h1 {{ color: #333; }}
                                     .print-btn {{ display: none; }}
                                     @media print {{
@@ -347,12 +350,12 @@ with flik2:
                         
                         <button onclick="printRecipe_{recept_id.replace('-', '_')}()" 
                                 style="background-color: #34C759; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); width: 100%;">
-                            f"{PRINT_ICON} Skriv ut recept"
+                            {PRINT_ICON} Skriv ut recept
                         </button>
                         """
                         components.html(print_html, height=50)
                     
-                    if st.button("f"{DELETE_ICON} Radera recept", key=f"del_{recept_id}"):
+                    if st.button(f"{DELETE_ICON} Radera recept", key=f"del_{recept_id}"):
                         supabase.table("recept").delete().eq("id", recept_id).execute()
                         st.success("Receptet raderades!")
                         st.rerun()
@@ -446,8 +449,7 @@ with flik3:
                             
                             <button onclick="shareRecipeD_{recept_id.replace('-', '_')}()" 
                                     style="background-color: #007AFF; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); width: 100%;">
-                                f"{SHARE_ICON} Dela recept"
-                                
+                                {SHARE_ICON} Dela recept
                             </button>
                             """
                             components.html(share_html_d, height=50)
@@ -459,7 +461,7 @@ with flik3:
                             except Exception as e:
                                 st.error(f"Kunde inte förbereda utskrift: {e}")
                                 text_for_print_d = str(text_content)
-                        
+                            
                             print_html_d = f"""
                             <script>
                             function printRecipeD_{recept_id.replace('-', '_')}() {{
@@ -468,7 +470,7 @@ with flik3:
                                 <head>
                                     <title>{titel}</title>
                                     <style>
-                                        body {{ font-family: Arial, sans-serif; margin: "20px"; }}
+                                        body {{ font-family: Arial, sans-serif; margin: 20px; }}
                                         h1 {{ color: #333; }}
                                         .print-btn {{ display: none; }}
                                         @media print {{
@@ -496,7 +498,7 @@ with flik3:
                             
                             <button onclick="printRecipeD_{recept_id.replace('-', '_')}()" 
                                     style="background-color: #34C759; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); width: 100%;">
-                                f"{PRINT_ICON} Skriv ut recept"
+                                {PRINT_ICON} Skriv ut recept
                             </button>
                             """
                             components.html(print_html_d, height=50)
