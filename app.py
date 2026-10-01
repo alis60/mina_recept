@@ -449,9 +449,9 @@ with flik3:
                         # Utskriftsfunktion för delade recept
                         # Utskriftsfunktion - Säkerställ att texten är en sträng
                         try:
-    			   text_for_print = text_content.replace('\n', '\\n').replace("'", "\\'")
+                            text_for_print = text_content.replace('\n', '\\n').replace("'", "\\'")
                         except AttributeError:
-    			   text_for_print = str(text_content).replace('\n', '\\n').replace("'", "\\'") 
+                            text_for_print = str(text_content).replace('\n', '\\n').replace("'", "\\'") 
                             print_html_d = f"""
                             <script>
                             function printRecipeD_{recept_id.replace('-', '_')}() {{
