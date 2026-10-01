@@ -304,7 +304,7 @@ with flik2:
                     
                     with col_print:
                         # Utskriftsfunktion - Säkerställ att texten är en sträng
-                        text_for_print = text_content.replace('\n', '\\n').replace("'", "\\'")
+                        text_for_print = str(text_content).replace('\n', '\\n').replace("'", "\\'")
                         print_html = f"""
                         <script>
                         function printRecipe_{recept_id.replace('-', '_')}() {{
