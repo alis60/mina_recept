@@ -16,13 +16,51 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 gemini_api_key = st.secrets.get("GEMINI_API_KEY", os.environ.get("GEMINI_API_KEY"))
 client = genai.Client(api_key=gemini_api_key)
 
-st.title("📖 Receptboken med AI-skanning")
+# --- MENY-FUNKTION ---
+def show_menu():
+    with st.sidebar:
+        st.markdown("### ⚙️ Inställningar")
+        
+        # Användarinformation
+        st.markdown(f"Inloggad som: **{st.session_state['user'].email}**")
+        
+        # Delningsinställningar
+        st.markdown("#### Delningsinställningar")
+        try:
+            user_check = supabase.table("recept").select("is_public").eq("user_id", st.session_state["user"].id).execute()
+            if user_check.data and len(user_check.data) > 0:
+                nuvarande_status = any(r.get("is_public", False) for r in user_check.data)
+            else:
+                nuvarande_status = False
+        except Exception as e:
+            st.error(f"Kunde inte läsa delningsstatus: {e}")
+            nuvarande_status = False
+
+        gör_publik = st.checkbox("🌍 Gör min receptbok publik", value=nuvarande_status)
+        
+        if st.button("Uppdatera delningsstatus"):
+            try:
+                supabase.table("recept").update({"is_public": gör_publik}).eq("user_id", st.session_state["user"].id).execute()
+                st.success("Delningsinställningen har sparats!")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Kunde inte uppdatera delningsstatus: {e}")
+        
+        st.divider()
+        
+        # Utloggningsknapp
+        if st.button("🚪 Logga ut"):
+            supabase.auth.sign_out()
+            for key in list(st.session_state.keys()):
+                del st.session_state[key]
+            st.rerun()
 
 # --- INLOGGNINGSHANTERING ---
 if "user" not in st.session_state:
     st.session_state["user"] = None
 
 if not st.session_state["user"]:
+    st.title("📖 Receptboken med AI-skanning")
     st.subheader("🔑 Logga in")
     
     with st.form("login_form"):
@@ -53,17 +91,11 @@ if not st.session_state["user"]:
                 
     st.stop()
 
-# Status för inloggad användare
-col_user, col_logout = st.columns([3, 1])
-with col_user:
-    st.write(f"Inloggad som: **{st.session_state['user'].email}**")
-with col_logout:
-    if st.button("Logga ut"):
-        supabase.auth.sign_out()
-        # Rensa session state
-        for key in list(st.session_state.keys()):
-            del st.session_state[key]
-        st.rerun()
+# --- HUVUDAPP ---
+st.title("📖 Receptboken med AI-skanning")
+
+# Visa meny endast om användaren är inloggad
+show_menu()
 
 st.divider()
 
@@ -84,7 +116,6 @@ with flik1:
     
     if upploadad_bild:
         bild = Image.open(uppladdad_bild)
-        # Optimera bildstorlek
         if bild.size[0] > 1500 or bild.size[1] > 1500:
             bild.thumbnail((1500, 1500))
         st.image(bild, caption="Uppladdad bild (optimerad)", width=300)
@@ -134,244 +165,4 @@ with flik1:
             with col_kat:
                 kategori_input = st.text_input("Kategori", value=rec.get("kategori", "Övrigt"))
             
-            st.markdown("### 📊 Näringsinnehåll")
-            
-            naring_data = rec.get("naring", {})
-            p_data = naring_data.get("per_portion", {})
-            h_data = naring_data.get("per_100g", {})
-            
-            df_naring = pd.DataFrame({
-                "Näringsämne (Makros)": [
-                    "⚡ Energi", "🥩 Protein", "🍞 Kolhydrater", 
-                    "└ varav sockerarter", "🥑 Fett", "└ varav mättat fett", 
-                    "🌾 Fiber", "🧂 Salt"
-                ],
-                "Per 100 g": [
-                    h_data.get("energi", "-"), h_data.get("protein", "-"), 
-                    h_data.get("kolhydrater", "-"), h_data.get("socker", "-"), 
-                    h_data.get("fett", "-"), h_data.get("mattat_fett", "-"), 
-                    h_data.get("fiber", "-"), h_data.get("salt", "-")
-                ],
-                "Per Portion": [
-                    p_data.get("energi", "-"), p_data.get("protein", "-"), 
-                    p_data.get("kolhydrater", "-"), p_data.get("socker", "-"), 
-                    p_data.get("fett", "-"), p_data.get("mattat_fett", "-"), 
-                    p_data.get("fiber", "-"), p_data.get("salt", "-")
-                ]
-            })
-            
-            st.table(df_naring)
-            
-            text_input = st.text_area("Recepttext (Ingredienser & Instruktioner)", value=rec.get("text", ""), height=220)
-            
-            if st.button("💾 Spara till databasen", key="btn_spara"):
-                naring_table_md = (
-                    "\n\n### 📊 Näringsinnehåll\n"
-                    "| Näringsämne (Makros) | Per 100 g | Per Portion |\n"
-                    "| :--- | :---: | :---: |\n"
-                    f"| ⚡ Energi | {h_data.get('energi', '-')} | {p_data.get('energi', '-')} |\n"
-                    f"| 🥩 Protein | {h_data.get('protein', '-')} | {p_data.get('protein', '-')} |\n"
-                    f"| 🍞 Kolhydrater | {h_data.get('kolhydrater', '-')} | {p_data.get('kolhydrater', '-')} |\n"
-                    f"| &nbsp;&nbsp;&nbsp;&nbsp;└ varav sockerarter | {h_data.get('socker', '-')} | {p_data.get('socker', '-')} |\n"
-                    f"| 🥑 Fett | {h_data.get('fett', '-')} | {p_data.get('fett', '-')} |\n"
-                    f"| &nbsp;&nbsp;&nbsp;&nbsp;└ varav mättat fett | {h_data.get('mattat_fett', '-')} | {p_data.get('mattat_fett', '-')} |\n"
-                    f"| 🌾 Fiber | {h_data.get('fiber', '-')} | {p_data.get('fiber', '-')} |\n"
-                    f"| 🧂 Salt | {h_data.get('salt', '-')} | {p_data.get('salt', '-')} |\n"
-                )
-                
-                full_text = f"{text_input}{naring_table_md}"
-                
-                data_att_spara = {
-                    "user_id": st.session_state["user"].id,
-                    "titel": titel_input,
-                    "kategori": kategori_input,
-                    "text": full_text,
-                    "is_public": False  # Nya recept är inte publika som standard
-                }
-                
-                try:
-                    supabase.table("recept").insert(data_att_spara).execute()
-                    st.success("Receptet har sparats!")
-                    
-                    del st.session_state["analyserat_recept"]
-                    st.session_state["uploader_key"] += 1
-                    
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Kunde inte spara till Supabase: {e}")
-
-with flik2:
-    st.header("Mina sparade recept")
-    
-    with st.expander("⚙️ Inställningar för delning"):
-        # Hämta nuvarande delningsstatus för användaren
-        try:
-            # Kontrollera om användaren har några recept och om de är publika
-            user_check = supabase.table("recept").select("is_public").eq("user_id", st.session_state["user"].id).execute()
-            if user_check.data and len(user_check.data) > 0:
-                # Kontrollera om något recept är publikt
-                nuvarande_status = any(r.get("is_public", False) for r in user_check.data)
-            else:
-                nuvarande_status = False
-        except Exception as e:
-            st.error(f"Kunde inte läsa delningsstatus: {e}")
-            nuvarande_status = False
-
-        gör_publik = st.checkbox("🌍 Gör hela min receptbok publik (synlig under Delade böcker)", value=nuvarande_status)
-        
-        if st.button("Uppdatera delningsstatus"):
-            try:
-                # Uppdatera alla recept för användaren
-                supabase.table("recept").update({"is_public": gör_publik}).eq("user_id", st.session_state["user"].id).execute()
-                st.success("Delningsinställningen har sparats!")
-                st.rerun()
-            except Exception as e:
-                st.error(f"Kunde inte uppdatera delningsstatus: {e}")
-
-    sokord = st.text_input("🔍 Sök i dina recept...", "", key="sok_recept")
-    
-    try:
-        # Använd bättre sökfunktion
-        if sokord:
-            res = supabase.table("recept").select("*").eq("user_id", st.session_state["user"].id).ilike("titel", f"%{sokord}%").execute()
-        else:
-            res = supabase.table("recept").select("*").eq("user_id", st.session_state["user"].id).execute()
-        
-        recept_lista = res.data
-        
-        if not recept_lista:
-            st.info("Inga sparade recept hittades.")
-        else:
-            for r in recept_lista:
-                titel = r.get("titel") or "Namnlöst recept"
-                kategori = r.get("kategori") or "Övrigt"
-                
-                with st.expander(f"📌 {titel} ({kategori})"):
-                    st.markdown(r.get("text", ""), unsafe_allow_html=True)
-                    
-                    st.divider()
-                    
-                    recept_id = r.get('id')
-                    del_text = f"Recept: {titel} ({kategori})\n\n{r.get('text', '')}"
-                    
-                    # Förbättrad delningsfunktion med Web Share API
-                    share_html = f"""
-                    <script src="https://cdn.jsdelivr.net/npm/@webcomponents/webcomponentsjs@2.5.0/webcomponents-lite.js"></script>
-                    <script>
-                    function shareRecipe() {{
-                        const textToShare = {json.dumps(del_text)};
-                        const title = '{titel}';
-                        
-                        if (navigator.share) {{
-                            navigator.share({{
-                                title: title,
-                                text: textToShare
-                            }}).catch(err => console.log('Error sharing:', err));
-                        }} else {{
-                            // Fallback för äldre webbläsare
-                            const textarea = document.createElement('textarea');
-                            textarea.value = textToShare;
-                            document.body.appendChild(textarea);
-                            textarea.select();
-                            document.execCommand('copy');
-                            document.body.removeChild(textarea);
-                            alert('Receptet har kopierats till urklipp!');
-                        }}
-                    }}
-                    </script>
-                    <button onclick="shareRecipe()" style="background-color: #ff4b4b; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                        📤 Dela recept
-                    </button>
-                    """
-                    components.html(share_html, height=50)
-                    
-                    if st.button("🗑️ Radera recept", key=f"del_{recept_id}"):
-                        supabase.table("recept").delete().eq("id", recept_id).execute()
-                        st.success("Receptet raderades!")
-                        st.rerun()
-                        
-    except Exception as e:
-        st.error(f"Kunde inte hämta recept från Supabase: {e}")
-
-with flik3:
-    st.header("👥 Delade receptböcker")
-    st.markdown("Här kan du välja och läsa andra användares publika receptböcker via rullgardinsmenyn nedan.")
-    
-    try:
-        publika_res = supabase.table("recept").select("*").eq("is_public", True).execute()
-        publika_recept = publika_res.data
-        
-        if not publika_recept:
-            st.info("Inga publika receptböcker hittades just nu.")
-        else:
-            användare_dict = {}
-            for rec in publika_recept:
-                uid = rec.get("user_id")
-                if uid not in användare_dict:
-                    användare_dict[uid] = []
-                användare_dict[uid].append(rec)
-            
-            # Försök hämta användarinformation för bättre namn
-            användar_info = {}
-            for uid in användare_dict.keys():
-                try:
-                    user_info = supabase.auth.admin.get_user_by_id(uid)
-                    email = user_info.user.email if user_info.user else "Okänd användare"
-                    användar_info[uid] = email
-                except:
-                    användar_info[uid] = f"Användare ({uid[:8]}...)"
-            
-            vald_användare = st.selectbox(
-                "Välj receptbok att kika i:", 
-                options=list(användare_dict.keys()),
-                format_func=lambda x: användar_info.get(x, f"Användare ({x[:8]}...)")
-            )
-            
-            if vald_användare:
-                st.divider()
-                st.subheader(f"📖 Receptsamling från {användar_info.get(vald_användare, 'Okänd användare')}")
-                
-                for r in användare_dict[vald_användare]:
-                    titel = r.get("titel") or "Namnlöst recept"
-                    kategori = r.get("kategori") or "Övrigt"
-                    
-                    with st.expander(f"📌 {titel} ({kategori})"):
-                        st.markdown(r.get("text", ""), unsafe_allow_html=True)
-                        
-                        st.divider()
-                        
-                        del_text_d = f"Recept: {titel} ({kategori})\n\n{r.get('text', '')}"
-                        
-                        # Förbättrad delningsfunktion för delade recept
-                        share_html_d = f"""
-                        <script src="https://cdn.jsdelivr.net/npm/@webcomponents/webcomponentsjs@2.5.0/webcomponents-lite.js"></script>
-                        <script>
-                        function shareRecipeD_{recept_id.replace('-', '_')}() {{
-                            const textToShare = {json.dumps(del_text_d)};
-                            const title = '{titel}';
-                            
-                            if (navigator.share) {{
-                                navigator.share({{
-                                    title: title,
-                                    text: textToShare
-                                }}).catch(err => console.log('Error sharing:', err));
-                            }} else {{
-                                // Fallback för äldre webbläsare
-                                const textarea = document.createElement('textarea');
-                                textarea.value = textToShare;
-                                document.body.appendChild(textarea);
-                                textarea.select();
-                                document.execCommand('copy');
-                                document.body.removeChild(textarea);
-                                alert('Receptet har kopierats till urklipp!');
-                            }}
-                        }}
-                        </script>
-                        <button onclick="shareRecipeD_{recept_id.replace('-', '_')}()" style="background-color: #ff4b4b; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                            📤 Dela recept
-                        </button>
-                        """
-                        components.html(share_html_d, height=50)
-                                
-    except Exception as e:
-        st.error(f"Kunde inte hämta delade recept: {e}")
+            st.markdown("### 📊
