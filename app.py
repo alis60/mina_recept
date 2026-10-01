@@ -301,11 +301,13 @@ with flik2:
                         </button>
                         """
                         components.html(share_html, height=50)
-                    
                     with col_print:
-                        # Utskriftsfunktion - Säkerställ att texten är en sträng
-                        text_for_print = str(text_content).replace('\n', '\\n').replace("'", "\\'")
-                        print_html = f"""
+                    # Utskriftsfunktion - Säkerställ att texten är en sträng
+                     try:
+                      text_for_print = str(text_content).replace('\n', '\\n').replace("'", "\\'")
+                    except Exception as e:
+                      st.error(f"Kunde inte förbereda utskrift: {e}")
+                      text_for_print = str(text_content)
                         <script>
                         function printRecipe_{recept_id.replace('-', '_')}() {{
                             const printContent = `
@@ -447,7 +449,12 @@ with flik3:
                         
                         with col_print_d:
                             # Utskriftsfunktion för delade recept
-                            text_for_print_d = str(text_content).replace('\n', '\\n').replace("'", "\\'")
+                            try:
+                                text_for_print_d = str(text_content).replace('\n', '\\n').replace("'", "\\'")
+                            except Exception as e:
+                                st.error(f"Kunde inte förbereda utskrift: {e}")
+                                text_for_print_d = str(text_content)
+                        
                             print_html_d = f"""
                             <script>
                             function printRecipeD_{recept_id.replace('-', '_')}() {{
