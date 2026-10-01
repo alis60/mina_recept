@@ -368,7 +368,7 @@ with flik3:
             användare_dict = {}
             for rec in publika_recept:
                 uid = rec.get("user_id")
-                if uid not i användare_dict:
+                if uid not in användare_dict:
                     användare_dict[uid] = []
                 användare_dict[uid].append(rec)
             
