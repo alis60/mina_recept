@@ -468,7 +468,7 @@ with flik3:
                                 <head>
                                     <title>{titel}</title>
                                     <style>
-                                        body {{ font-family: Arial, sans-serif; margin: 20px; }}
+                                        body {{ font-family: Arial, sans-serif; margin: "20px"; }}
                                         h1 {{ color: #333; }}
                                         .print-btn {{ display: none; }}
                                         @media print {{
