@@ -177,9 +177,9 @@ with flik1:
             
             df_naring = pd.DataFrame({
                 "Näringsämne (Makros)": [
-                    "⚡ Energi", "🥩 Protein", "🍞 Kolhydrater", 
-                    "  └ varav sockerarter", "🥑 Fett", "  └ varav mättat fett", 
-                    "🌾 Fiber", "🧂 Salt"
+                    "Energi", "Protein", "Kolhydrater", 
+                    "  └ varav sockerarter", "Fett", "  └ varav mättat fett", 
+                    "Fiber", "Salt"
                 ],
                 "Per 100 g": [
                     h_data.get("energi", "-"), h_data.get("protein", "-"), 
@@ -204,14 +204,14 @@ with flik1:
                     "\n\n### 📊 Näringsinnehåll\n"
                     "| Näringsämne (Makros) | Per 100 g | Per Portion |\n"
                     "| :--- | :---: | :---: |\n"
-                    f"| ⚡ Energi | {h_data.get('energi', '-')} | {p_data.get('energi', '-')} |\n"
-                    f"| 🥩 Protein | {h_data.get('protein', '-')} | {p_data.get('protein', '-')} |\n"
-                    f"| 🍞 Kolhydrater | {h_data.get('kolhydrater', '-')} | {p_data.get('kolhydrater', '-')} |\n"
+                    f"| Energi | {h_data.get('energi', '-')} | {p_data.get('energi', '-')} |\n"
+                    f"| Protein | {h_data.get('protein', '-')} | {p_data.get('protein', '-')} |\n"
+                    f"| Kolhydrater | {h_data.get('kolhydrater', '-')} | {p_data.get('kolhydrater', '-')} |\n"
                     f"|   └ varav sockerarter | {h_data.get('socker', '-')} | {p_data.get('socker', '-')} |\n"
-                    f"| 🥑 Fett | {h_data.get('fett', '-')} | {p_data.get('fett', '-')} |\n"
+                    f"| Fett | {h_data.get('fett', '-')} | {p_data.get('fett', '-')} |\n"
                     f"|   └ varav mättat fett | {h_data.get('mattat_fett', '-')} | {p_data.get('mattat_fett', '-')} |\n"
-                    f"| 🌾 Fiber | {h_data.get('fiber', '-')} | {p_data.get('fiber', '-')} |\n"
-                    f"| 🧂 Salt | {h_data.get('salt', '-')} | {p_data.get('salt', '-')} |\n"
+                    f"| Fiber | {h_data.get('fiber', '-')} | {p_data.get('fiber', '-')} |\n"
+                    f"| Salt | {h_data.get('salt', '-')} | {p_data.get('salt', '-')} |\n"
                 )
                 
                 full_text = f"{text_input}{naring_table_md}"
@@ -344,10 +344,13 @@ with flik2:
                             </body>
                             </html>
                             """
-                            # Öppna i nytt fönster
-                            st.components.v1.html(
-                                f'<script>window.open("data:text/html,{print_html.replace(chr(10), " ").replace(chr(13), " ").replace(chr(9), " ").replace('"', "&quot;")}", "_blank");</script>',
-                                height=0
+                            
+                            # Visa en nedladdningsknapp som backup
+                            st.download_button(
+                                label=f"{PRINT_ICON} Ladda ner recept för utskrift",
+                                data=print_html,
+                                file_name=f"{titel}.html",
+                                mime="text/html"
                             )
                     
                     if st.button(f"{DELETE_ICON} Radera recept", key=f"del_{recept_id}"):
@@ -487,10 +490,13 @@ with flik3:
                                 </body>
                                 </html>
                                 """
-                                # Öppna i nytt fönster
-                                st.components.v1.html(
-                                    f'<script>window.open("data:text/html,{print_html.replace(chr(10), " ").replace(chr(13), " ").replace(chr(9), " ").replace('"', "&quot;")}", "_blank");</script>',
-                                    height=0
+                                
+                                # Visa en nedladdningsknapp som backup
+                                st.download_button(
+                                    label=f"{PRINT_ICON} Ladda ner recept för utskrift",
+                                    data=print_html,
+                                    file_name=f"{titel}.html",
+                                    mime="text/html"
                                 )
                                 
     except Exception as e:
