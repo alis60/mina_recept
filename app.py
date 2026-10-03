@@ -314,17 +314,17 @@ with flik2:
                             st.error(f"Kunde inte förbereda utskrift: {e}")
                             text_for_print = str(text_content)
                         
-                        print_html = f"""
-                        <script>
-                        function printRecipe_{str(recept_id).replace('-', '_')}() {{
-                            const printContent = `
+                        # Skapa en enkel utskriftsknapp utan JavaScript
+                        if st.button(f"{PRINT_ICON} Skriv ut recept", key=f"print_{recept_id}"):
+                            # Visa receptet i ett nytt fönster för utskrift
+                            print_html = f"""
+                            <!DOCTYPE html>
                             <html>
                             <head>
                                 <title>{titel}</title>
                                 <style>
                                     body {{ font-family: Arial, sans-serif; margin: 20px; }}
                                     h1 {{ color: #333; }}
-                                    .print-btn {{ display: none; }}
                                     @media print {{
                                         .no-print {{ display: none; }}
                                     }}
@@ -341,19 +341,8 @@ with flik2:
                                 </script>
                             </body>
                             </html>
-                            `;
-                            
-                            const printWindow = window.open('', '_blank');
-                            printWindow.document.write(printContent);
-                        }}
-                        </script>
-                        
-                        <button onclick="printRecipe_{str(recept_id).replace('-', '_')}()" 
-                                style="background-color: #34C759; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); width: 100%;">
-                            {PRINT_ICON} Skriv ut recept
-                        </button>
-                        """
-                        components.html(print_html, height=50)
+                            """
+                            st.markdown(print_html, unsafe_allow_html=True)
                     
                     if st.button(f"{DELETE_ICON} Radera recept", key=f"del_{recept_id}"):
                         supabase.table("recept").delete().eq("id", recept_id).execute()
@@ -462,17 +451,17 @@ with flik3:
                                 st.error(f"Kunde inte förbereda utskrift: {e}")
                                 text_for_print_d = str(text_content)
                             
-                            print_html_d = f"""
-                            <script>
-                            function printRecipeD_{str(recept_id).replace('-', '_')}() {{
-                                const printContent = `
+                            # Skapa en enkel utskriftsknapp utan JavaScript
+                            if st.button(f"{PRINT_ICON} Skriv ut recept", key=f"print_d_{recept_id}"):
+                                # Visa receptet i ett nytt fönster för utskrift
+                                print_html = f"""
+                                <!DOCTYPE html>
                                 <html>
                                 <head>
                                     <title>{titel}</title>
                                     <style>
                                         body {{ font-family: Arial, sans-serif; margin: 20px; }}
                                         h1 {{ color: #333; }}
-                                        .print-btn {{ display: none; }}
                                         @media print {{
                                             .no-print {{ display: none; }}
                                         }}
@@ -489,19 +478,8 @@ with flik3:
                                     </script>
                                 </body>
                                 </html>
-                                `;
-                                
-                                const printWindow = window.open('', '_blank');
-                                printWindow.document.write(printContent);
-                            }}
-                            </script>
-                            
-                            <button onclick="printRecipeD_{str(recept_id).replace('-', '_')}()" 
-                                    style="background-color: #34C759; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); width: 100%;">
-                                {PRINT_ICON} Skriv ut recept
-                            </button>
-                            """
-                            components.html(print_html_d, height=50)
+                                """
+                                st.markdown(print_html, unsafe_allow_html=True)
                                 
     except Exception as e:
         st.error(f"Kunde inte hämta delade recept: {e}")
