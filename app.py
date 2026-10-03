@@ -178,7 +178,7 @@ with flik1:
             df_naring = pd.DataFrame({
                 "Näringsämne (Makros)": [
                     "Energi", "Protein", "Kolhydrater", 
-                    "  └ varav sockerarter", "Fett", "  └ varav mättat fett", 
+                    "  - varav sockerarter", "Fett", "  - varav mättat fett", 
                     "Fiber", "Salt"
                 ],
                 "Per 100 g": [
@@ -207,9 +207,9 @@ with flik1:
                     f"| Energi | {h_data.get('energi', '-')} | {p_data.get('energi', '-')} |\n"
                     f"| Protein | {h_data.get('protein', '-')} | {p_data.get('protein', '-')} |\n"
                     f"| Kolhydrater | {h_data.get('kolhydrater', '-')} | {p_data.get('kolhydrater', '-')} |\n"
-                    f"|   └ varav sockerarter | {h_data.get('socker', '-')} | {p_data.get('socker', '-')} |\n"
+                    f"|   - varav sockerarter | {h_data.get('socker', '-')} | {p_data.get('socker', '-')} |\n"
                     f"| Fett | {h_data.get('fett', '-')} | {p_data.get('fett', '-')} |\n"
-                    f"|   └ varav mättat fett | {h_data.get('mattat_fett', '-')} | {p_data.get('mattat_fett', '-')} |\n"
+                    f"|   - varav mättat fett | {h_data.get('mattat_fett', '-')} | {p_data.get('mattat_fett', '-')} |\n"
                     f"| Fiber | {h_data.get('fiber', '-')} | {p_data.get('fiber', '-')} |\n"
                     f"| Salt | {h_data.get('salt', '-')} | {p_data.get('salt', '-')} |\n"
                 )
@@ -309,12 +309,12 @@ with flik2:
                     with col_print:
                         # Utskriftsfunktion - Säkerställ att texten är en sträng
                         try:
-                            text_for_print = str(text_content).replace('\n', '\\n').replace("'", "\\'")
+                            text_for_print = str(text_content).replace('\n', '<br>').replace("'", "\\'")
                         except Exception as e:
                             st.error(f"Kunde inte förbereda utskrift: {e}")
                             text_for_print = str(text_content)
                         
-                        # Skapa en utskriftsknapp som öppnar nytt fönster
+                        # Skapa en utskriftsknapp som öppnar utskriftsdialogen direkt
                         if st.button(f"{PRINT_ICON} Skriv ut recept", key=f"print_{recept_id}"):
                             # Skapa HTML för utskrift
                             print_html = f"""
@@ -323,12 +323,33 @@ with flik2:
                             <head>
                                 <title>{titel}</title>
                                 <style>
-                                    body {{ font-family: Arial, sans-serif; margin: 20px; }}
-                                    h1 {{ color: #333; }}
-                                    h2 {{ color: #666; }}
-                                    .no-print {{ display: none; }}
+                                    body {{ 
+                                        font-family: Arial, sans-serif; 
+                                        margin: 20px; 
+                                        padding: 20px;
+                                        background: white;
+                                    }}
+                                    h1 {{ 
+                                        color: #333; 
+                                        font-size: 24px;
+                                        margin-bottom: 10px;
+                                    }}
+                                    h2 {{ 
+                                        color: #666; 
+                                        font-size: 18px;
+                                        margin-bottom: 15px;
+                                    }}
+                                    .no-print {{ 
+                                        display: none; 
+                                    }}
                                     @media print {{
-                                        .no-print {{ display: none; }}
+                                        .no-print {{ 
+                                            display: none; 
+                                        }}
+                                        body {{
+                                            margin: 0;
+                                            padding: 0;
+                                        }}
                                     }}
                                 </style>
                             </head>
@@ -345,12 +366,10 @@ with flik2:
                             </html>
                             """
                             
-                            # Visa en nedladdningsknapp som backup
-                            st.download_button(
-                                label=f"{PRINT_ICON} Ladda ner recept för utskrift",
-                                data=print_html,
-                                file_name=f"{titel}.html",
-                                mime="text/html"
+                            # Skapa en dold iframe som öppnar utskriftsdialogen
+                            st.components.v1.html(
+                                f'<iframe srcdoc="{print_html.replace(chr(10), " ").replace(chr(13), " ").replace(chr(9), " ").replace(chr(34), "&quot;").replace(chr(39), "&#39;")}" style="width:100%; height:0; border:none; display:none;"></iframe>',
+                                height=0
                             )
                     
                     if st.button(f"{DELETE_ICON} Radera recept", key=f"del_{recept_id}"):
@@ -455,12 +474,12 @@ with flik3:
                         with col_print_d:
                             # Utskriftsfunktion för delade recept
                             try:
-                                text_for_print_d = str(text_content).replace('\n', '\\n').replace("'", "\\'")
+                                text_for_print_d = str(text_content).replace('\n', '<br>').replace("'", "\\'")
                             except Exception as e:
                                 st.error(f"Kunde inte förbereda utskrift: {e}")
                                 text_for_print_d = str(text_content)
                             
-                            # Skapa en utskriftsknapp som öppnar nytt fönster
+                            # Skapa en utskriftsknapp som öppnar utskriftsdialogen direkt
                             if st.button(f"{PRINT_ICON} Skriv ut recept", key=f"print_d_{recept_id}"):
                                 # Skapa HTML för utskrift
                                 print_html = f"""
@@ -469,12 +488,33 @@ with flik3:
                                 <head>
                                     <title>{titel}</title>
                                     <style>
-                                        body {{ font-family: Arial, sans-serif; margin: 20px; }}
-                                        h1 {{ color: #333; }}
-                                        h2 {{ color: #666; }}
-                                        .no-print {{ display: none; }}
+                                        body {{ 
+                                            font-family: Arial, sans-serif; 
+                                            margin: 20px; 
+                                            padding: 20px;
+                                            background: white;
+                                        }}
+                                        h1 {{ 
+                                            color: #333; 
+                                            font-size: 24px;
+                                            margin-bottom: 10px;
+                                        }}
+                                        h2 {{ 
+                                            color: #666; 
+                                            font-size: 18px;
+                                            margin-bottom: 15px;
+                                        }}
+                                        .no-print {{ 
+                                            display: none; 
+                                        }}
                                         @media print {{
-                                            .no-print {{ display: none; }}
+                                            .no-print {{ 
+                                                display: none; 
+                                            }}
+                                            body {{
+                                                margin: 0;
+                                                padding: 0;
+                                            }}
                                         }}
                                     </style>
                                 </head>
@@ -491,12 +531,10 @@ with flik3:
                                 </html>
                                 """
                                 
-                                # Visa en nedladdningsknapp som backup
-                                st.download_button(
-                                    label=f"{PRINT_ICON} Ladda ner recept för utskrift",
-                                    data=print_html,
-                                    file_name=f"{titel}.html",
-                                    mime="text/html"
+                                # Skapa en dold iframe som öppnar utskriftsdialogen
+                                st.components.v1.html(
+                                    f'<iframe srcdoc="{print_html.replace(chr(10), " ").replace(chr(13), " ").replace(chr(9), " ").replace(chr(34), "&quot;").replace(chr(39), "&#39;")}" style="width:100%; height:0; border:none; display:none;"></iframe>',
+                                    height=0
                                 )
                                 
     except Exception as e:
