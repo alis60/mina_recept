@@ -251,21 +251,7 @@ with flik2:
         if not recept_lista:
             st.info("Inga sparade recept hittades.")
         else:
-            st.write(f"Hittade {len(recept_lista)} recept totalt")
-            
-            for i, r in enumerate(recept_lista):
-                # Hämta alla fält och skriv ut dem
-                st.write(f"DEBUG: Recept ID {r.get('id')}")
-                st.write(f"titel: {r.get('titel')} (typ: {type(r.get('titel'))})")
-                st.write(f"kategori: {r.get('kategori')} (typ: {type(r.get('kategori'))})")
-                st.write(f"text: {r.get('text')} (typ: {type(r.get('text'))})")
-                
-                # Om detta är det sista receptet, visa mer info
-                if r.get('id') == max([rec.get('id') for rec in recept_lista]):
-                    st.write("DEBUG - Detta är det sista receptet!")
-                    st.write(f"Text-innehåll: {r.get('text')}")
-                    st.write(f"Text-typ: {type(r.get('text'))}")
-                
+            for r in recept_lista:
                 titel = r.get("titel") or "Namnlöst recept"
                 kategori = r.get("kategori") or "Övrigt"
                 recept_id = r.get('id')
@@ -275,12 +261,8 @@ with flik2:
                     text_content = r.get("text", "")
                     if text_content is None:
                         text_content = ""
-                    else:
-                        try:
-                            text_content = str(text_content)
-                        except Exception:
-                            text_content = ""
-                            st.warning(f"Ett recept hade ett problematiskt textfält och har rensats")
+                    elif not isinstance(text_content, str):
+                        text_content = str(text_content)
                     
                     st.markdown(text_content, unsafe_allow_html=True)
                     
@@ -296,7 +278,7 @@ with flik2:
                         # Delningsfunktion
                         share_html = f"""
                         <script>
-                        function shareRecipe_{recept_id.replace('-', '_')}() {{
+                        function shareRecipe_{str(recept_id).replace('-', '_')}() {{
                             const shareData = {{
                                 title: '{titel}',
                                 text: `{del_text.replace('`', '\\`')}`
@@ -317,7 +299,7 @@ with flik2:
                         }}
                         </script>
                         
-                        <button onclick="shareRecipe_{recept_id.replace('-', '_')}()" 
+                        <button onclick="shareRecipe_{str(recept_id).replace('-', '_')}()" 
                                 style="background-color: #007AFF; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); width: 100%;">
                             {SHARE_ICON} Dela recept
                         </button>
@@ -326,27 +308,6 @@ with flik2:
                     
                     with col_print:
                         # Utskriftsfunktion - Säkerställ att texten är en sträng
-                        st.write(f"DEBUG: Textlängd: {len(str(text_content))}")
-                        
-                        # Om texten är extremt lång, visa en varning
-                        if len(str(text_content)) > 10000:
-                            st.warning("Extremt långt textinnehåll upptäckt!")
-                        
-                        # Om detta är det sista receptet
-                        if r.get('id') == max([rec.get('id') for rec in recept_lista]):
-                            st.write("DEBUG - Detta är det sista receptet!")
-                            st.write(f"Text (första 100 tecken): {str(text_content)[:100]}")
-                            st.write(f"Textlängd: {len(str(text_content))}")
-                            
-                            # Kontrollera för problematiska tecken
-                            problem_chars = []
-                            for i, char in enumerate(str(text_content)):
-                                if ord(char) < 32 and char not in ['\n', '\r', '\t']:
-                                    problem_chars.append(f"Position {i}: {ord(char)}")
-                            
-                            if problem_chars:
-                                st.error(f"Problematiska tecken: {problem_chars}")
-                        
                         try:
                             text_for_print = str(text_content).replace('\n', '\\n').replace("'", "\\'")
                         except Exception as e:
@@ -355,7 +316,7 @@ with flik2:
                         
                         print_html = f"""
                         <script>
-                        function printRecipe_{recept_id.replace('-', '_')}() {{
+                        function printRecipe_{str(recept_id).replace('-', '_')}() {{
                             const printContent = `
                             <html>
                             <head>
@@ -387,7 +348,7 @@ with flik2:
                         }}
                         </script>
                         
-                        <button onclick="printRecipe_{recept_id.replace('-', '_')}()" 
+                        <button onclick="printRecipe_{str(recept_id).replace('-', '_')}()" 
                                 style="background-color: #34C759; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); width: 100%;">
                             {PRINT_ICON} Skriv ut recept
                         </button>
@@ -450,12 +411,8 @@ with flik3:
                         text_content = r.get("text", "")
                         if text_content is None:
                             text_content = ""
-                        else:
-                            try:
-                                text_content = str(text_content)
-                            except Exception:
-                                text_content = ""
-                                st.warning(f"Ett delat recept hade ett problematiskt textfält och har rensats")
+                        elif not isinstance(text_content, str):
+                            text_content = str(text_content)
                             
                         st.markdown(text_content, unsafe_allow_html=True)
                         
@@ -470,7 +427,7 @@ with flik3:
                             # Delningsfunktion för delade recept
                             share_html_d = f"""
                             <script>
-                            function shareRecipeD_{recept_id.replace('-', '_')}() {{
+                            function shareRecipeD_{str(recept_id).replace('-', '_')}() {{
                                 const shareData = {{
                                     title: '{titel}',
                                     text: `{del_text_d.replace('`', '\\`')}`
@@ -490,7 +447,7 @@ with flik3:
                             }}
                             </script>
                             
-                            <button onclick="shareRecipeD_{recept_id.replace('-', '_')}()" 
+                            <button onclick="shareRecipeD_{str(recept_id).replace('-', '_')}()" 
                                     style="background-color: #007AFF; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); width: 100%;">
                                 {SHARE_ICON} Dela recept
                             </button>
@@ -507,7 +464,7 @@ with flik3:
                             
                             print_html_d = f"""
                             <script>
-                            function printRecipeD_{recept_id.replace('-', '_')}() {{
+                            function printRecipeD_{str(recept_id).replace('-', '_')}() {{
                                 const printContent = `
                                 <html>
                                 <head>
@@ -539,7 +496,7 @@ with flik3:
                             }}
                             </script>
                             
-                            <button onclick="printRecipeD_{recept_id.replace('-', '_')}()" 
+                            <button onclick="printRecipeD_{str(recept_id).replace('-', '_')}()" 
                                     style="background-color: #34C759; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); width: 100%;">
                                 {PRINT_ICON} Skriv ut recept
                             </button>
