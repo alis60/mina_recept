@@ -251,7 +251,21 @@ with flik2:
         if not recept_lista:
             st.info("Inga sparade recept hittades.")
         else:
-            for r in recept_lista:
+            st.write(f"Hittade {len(recept_lista)} recept totalt")
+            
+            for i, r in enumerate(recept_lista):
+                # Hämta alla fält och skriv ut dem
+                st.write(f"DEBUG: Recept ID {r.get('id')}")
+                st.write(f"titel: {r.get('titel')} (typ: {type(r.get('titel'))})")
+                st.write(f"kategori: {r.get('kategori')} (typ: {type(r.get('kategori'))})")
+                st.write(f"text: {r.get('text')} (typ: {type(r.get('text'))})")
+                
+                # Om detta är det sista receptet, visa mer info
+                if r.get('id') == max([rec.get('id') for rec in recept_lista]):
+                    st.write("DEBUG - Detta är det sista receptet!")
+                    st.write(f"Text-innehåll: {r.get('text')}")
+                    st.write(f"Text-typ: {type(r.get('text'))}")
+                
                 titel = r.get("titel") or "Namnlöst recept"
                 kategori = r.get("kategori") or "Övrigt"
                 recept_id = r.get('id')
@@ -261,8 +275,12 @@ with flik2:
                     text_content = r.get("text", "")
                     if text_content is None:
                         text_content = ""
-                    elif not isinstance(text_content, str):
-                        text_content = str(text_content)
+                    else:
+                        try:
+                            text_content = str(text_content)
+                        except Exception:
+                            text_content = ""
+                            st.warning(f"Ett recept hade ett problematiskt textfält och har rensats")
                     
                     st.markdown(text_content, unsafe_allow_html=True)
                     
@@ -308,6 +326,27 @@ with flik2:
                     
                     with col_print:
                         # Utskriftsfunktion - Säkerställ att texten är en sträng
+                        st.write(f"DEBUG: Textlängd: {len(str(text_content))}")
+                        
+                        # Om texten är extremt lång, visa en varning
+                        if len(str(text_content)) > 10000:
+                            st.warning("Extremt långt textinnehåll upptäckt!")
+                        
+                        # Om detta är det sista receptet
+                        if r.get('id') == max([rec.get('id') for rec in recept_lista]):
+                            st.write("DEBUG - Detta är det sista receptet!")
+                            st.write(f"Text (första 100 tecken): {str(text_content)[:100]}")
+                            st.write(f"Textlängd: {len(str(text_content))}")
+                            
+                            # Kontrollera för problematiska tecken
+                            problem_chars = []
+                            for i, char in enumerate(str(text_content)):
+                                if ord(char) < 32 and char not in ['\n', '\r', '\t']:
+                                    problem_chars.append(f"Position {i}: {ord(char)}")
+                            
+                            if problem_chars:
+                                st.error(f"Problematiska tecken: {problem_chars}")
+                        
                         try:
                             text_for_print = str(text_content).replace('\n', '\\n').replace("'", "\\'")
                         except Exception as e:
@@ -411,8 +450,12 @@ with flik3:
                         text_content = r.get("text", "")
                         if text_content is None:
                             text_content = ""
-                        elif not isinstance(text_content, str):
-                            text_content = str(text_content)
+                        else:
+                            try:
+                                text_content = str(text_content)
+                            except Exception:
+                                text_content = ""
+                                st.warning(f"Ett delat recept hade ett problematiskt textfält och har rensats")
                             
                         st.markdown(text_content, unsafe_allow_html=True)
                         
