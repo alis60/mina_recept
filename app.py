@@ -264,9 +264,17 @@ with flik2:
                 kategori = r.get("kategori") or "Övrigt"
                 recept_id = r.get('id')
                 
+                # Skapa en unik nyckel för varje expanderbar sektion
                 expander_key = f"expander_{recept_id}"
-                with st.expander(f"📌 {titel} ({kategori})", expanded=expander_key in st.session_state):
-                    st.session_state[expander_key] = True
+                
+                # Kontrollera om detta recept är expanderat
+                is_expanded = expander_key in st.session_state and st.session_state[expander_key]
+                
+                # Skapa expanderbar sektion
+                with st.expander(f"📌 {titel} ({kategori})", expanded=is_expanded):
+                    # Om sektionen är expanderad, spara det i session state
+                    if is_expanded:
+                        st.session_state[expander_key] = True
                     
                     # Säkerställ att texten är en sträng innan vi visar den
                     text_content = r.get("text", "")
@@ -384,13 +392,13 @@ with flik2:
                             if is_mobile:
                                 # Mobil: öppna i ny flik
                                 st.components.v1.html(
-                                    f'<script>window.open("data:text/html;charset=utf-8,{print_html.replace(chr(10), " ").replace(chr(13), " ").replace(chr(9), " ").replace('"', "&quot;").replace("&", "&amp;")}", "_blank");</script>',
+                                    f'<script>window.open("data:text/html;charset=utf-8,{print_html.replace(chr(10), " ").replace(chr(13), " ").replace(chr(9), " ").replace(\'"\', "&quot;").replace("&", "&amp;")}", "_blank");</script>',
                                     height=0
                                 )
                             else:
                                 # Desktop: öppna i nytt fönster
                                 st.components.v1.html(
-                                    f'<script>window.open("data:text/html;charset=utf-8,{print_html.replace(chr(10), " ").replace(chr(13), " ").replace(chr(9), " ").replace('"', "&quot;").replace("&", "&amp;")}", "_blank", "width=800,height=600");</script>',
+                                    f'<script>window.open("data:text/html;charset=utf-8,{print_html.replace(chr(10), " ").replace(chr(13), " ").replace(chr(9), " ").replace(\'"\', "&quot;").replace("&", "&amp;")}", "_blank", "width=800,height=600");</script>',
                                     height=0
                                 )
                     
@@ -445,9 +453,17 @@ with flik3:
                     kategori = r.get("kategori") or "Övrigt"
                     recept_id = r.get('id')
                     
+                    # Skapa en unik nyckel för varje expanderbar sektion
                     expander_key = f"expander_{recept_id}"
-                    with st.expander(f"📌 {titel} ({kategori})", expanded=expander_key in st.session_state):
-                        st.session_state[expander_key] = True
+                    
+                    # Kontrollera om detta recept är expanderat
+                    is_expanded = expander_key in st.session_state and st.session_state[expander_key]
+                    
+                    # Skapa expanderbar sektion
+                    with st.expander(f"📌 {titel} ({kategori})", expanded=is_expanded):
+                        # Om sektionen är expanderad, spara det i session state
+                        if is_expanded:
+                            st.session_state[expander_key] = True
                         
                         # Säkerställ att texten är en sträng
                         text_content = r.get("text", "")
@@ -563,13 +579,13 @@ with flik3:
                                 if is_mobile:
                                     # Mobil: öppna i ny flik
                                     st.components.v1.html(
-                                        f'<script>window.open("data:text/html;charset=utf-8,{print_html.replace(chr(10), " ").replace(chr(13), " ").replace(chr(9), " ").replace('"', "&quot;").replace("&", "&amp;")}", "_blank");</script>',
+                                        f'<script>window.open("data:text/html;charset=utf-8,{print_html.replace(chr(10), " ").replace(chr(13), " ").replace(chr(9), " ").replace(\'"\', "&quot;").replace("&", "&amp;")}", "_blank");</script>',
                                         height=0
                                     )
                                 else:
                                     # Desktop: öppna i nytt fönster
                                     st.components.v1.html(
-                                        f'<script>window.open("data:text/html;charset=utf-8,{print_html.replace(chr(10), " ").replace(chr(13), " ").replace(chr(9), " ").replace('"', "&quot;").replace("&", "&amp;")}", "_blank", "width=800,height=600");</script>',
+                                        f'<script>window.open("data:text/html;charset=utf-8,{print_html.replace(chr(10), " ").replace(chr(13), " ").replace(chr(9), " ").replace(\'"\', "&quot;").replace("&", "&amp;")}", "_blank", "width=800,height=600");</script>',
                                         height=0
                                     )
                                 
