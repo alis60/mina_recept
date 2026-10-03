@@ -12,6 +12,7 @@ from supabase import create_client, Client
 import streamlit.components.v1 as components
 import html
 import time
+import base64
 
 # --- SUPABASE & GEMINI CONFIG ---
 SUPABASE_URL = st.secrets.get("SUPABASE_URL", os.environ.get("SUPABASE_URL"))
@@ -385,6 +386,9 @@ with flik2:
                             </html>
                             """
                             
+                            # Använd base64 för att undvika problem med specialtecken
+                            print_html_b64 = base64.b64encode(print_html.encode('utf-8')).decode('utf-8')
+                            
                             # Använd olika metoder beroende på enhet
                             user_agent = st.context.headers.get("User-Agent", "")
                             is_mobile = "Mobile" in user_agent or "iPad" in user_agent or "Android" in user_agent or "iPhone" in user_agent
@@ -392,13 +396,13 @@ with flik2:
                             if is_mobile:
                                 # Mobil: öppna i ny flik
                                 st.components.v1.html(
-                                    f'<script>window.open("data:text/html;charset=utf-8,{print_html.replace(chr(10), " ").replace(chr(13), " ").replace(chr(9), " ").replace(\'"\', "&quot;").replace("&", "&amp;")}", "_blank");</script>',
+                                    f'<script>window.open("data:text/html;base64,{print_html_b64}", "_blank");</script>',
                                     height=0
                                 )
                             else:
                                 # Desktop: öppna i nytt fönster
                                 st.components.v1.html(
-                                    f'<script>window.open("data:text/html;charset=utf-8,{print_html.replace(chr(10), " ").replace(chr(13), " ").replace(chr(9), " ").replace(\'"\', "&quot;").replace("&", "&amp;")}", "_blank", "width=800,height=600");</script>',
+                                    f'<script>window.open("data:text/html;base64,{print_html_b64}", "_blank", "width=800,height=600");</script>',
                                     height=0
                                 )
                     
@@ -572,6 +576,9 @@ with flik3:
                                 </html>
                                 """
                                 
+                                # Använd base64 för att undvika problem med specialtecken
+                                print_html_b64 = base64.b64encode(print_html.encode('utf-8')).decode('utf-8')
+                                
                                 # Använd olika metoder beroende på enhet
                                 user_agent = st.context.headers.get("User-Agent", "")
                                 is_mobile = "Mobile" in user_agent or "iPad" in user_agent or "Android" in user_agent or "iPhone" in user_agent
@@ -579,13 +586,13 @@ with flik3:
                                 if is_mobile:
                                     # Mobil: öppna i ny flik
                                     st.components.v1.html(
-                                        f'<script>window.open("data:text/html;charset=utf-8,{print_html.replace(chr(10), " ").replace(chr(13), " ").replace(chr(9), " ").replace(\'"\', "&quot;").replace("&", "&amp;")}", "_blank");</script>',
+                                        f'<script>window.open("data:text/html;base64,{print_html_b64}", "_blank");</script>',
                                         height=0
                                     )
                                 else:
                                     # Desktop: öppna i nytt fönster
                                     st.components.v1.html(
-                                        f'<script>window.open("data:text/html;charset=utf-8,{print_html.replace(chr(10), " ").replace(chr(13), " ").replace(chr(9), " ").replace(\'"\', "&quot;").replace("&", "&amp;")}", "_blank", "width=800,height=600");</script>',
+                                        f'<script>window.open("data:text/html;base64,{print_html_b64}", "_blank", "width=800,height=600");</script>',
                                         height=0
                                     )
                                 
