@@ -11,6 +11,7 @@ import pandas as pd
 from supabase import create_client, Client
 import streamlit.components.v1 as components
 import html
+import time
 
 # --- SUPABASE & GEMINI CONFIG ---
 SUPABASE_URL = st.secrets.get("SUPABASE_URL", os.environ.get("SUPABASE_URL"))
@@ -176,10 +177,10 @@ with flik1:
             h_data = naring_data.get("per_100g", {})
             
             df_naring = pd.DataFrame({
-                "Näringsämne (Makros)": [
-                    "Energi", "Protein", "Kolhydrater", 
-                    "  - varav sockerarter", "Fett", "  - varav mättat fett", 
-                    "Fiber", "Salt"
+                "Näringsämne": [
+                    "Energi (kcal)", "Protein (g)", "Kolhydrater (g)", 
+                    " - varav sockerarter (g)", "Fett (g)", " - varav mättat fett (g)", 
+                    "Fiber (g)", "Salt (g)"
                 ],
                 "Per 100 g": [
                     h_data.get("energi", "-"), h_data.get("protein", "-"), 
@@ -187,7 +188,7 @@ with flik1:
                     h_data.get("fett", "-"), h_data.get("mattat_fett", "-"), 
                     h_data.get("fiber", "-"), h_data.get("salt", "-")
                 ],
-                "Per Portion": [
+                "Per portion": [
                     p_data.get("energi", "-"), p_data.get("protein", "-"), 
                     p_data.get("kolhydrater", "-"), p_data.get("socker", "-"), 
                     p_data.get("fett", "-"), p_data.get("mattat_fett", "-"), 
@@ -201,17 +202,17 @@ with flik1:
             
             if st.button("💾 Spara till databasen", key="btn_spara"):
                 naring_table_md = (
-                    "\n\n### 📊 Näringsinnehåll\n"
-                    "| Näringsämne (Makros) | Per 100 g | Per Portion |\n"
+                    "\n\n### 📊 Näringsinnehåll\n\n"
+                    "| Näringsämne | Per 100 g | Per portion |\n"
                     "| :--- | :---: | :---: |\n"
-                    f"| Energi | {h_data.get('energi', '-')} | {p_data.get('energi', '-')} |\n"
-                    f"| Protein | {h_data.get('protein', '-')} | {p_data.get('protein', '-')} |\n"
-                    f"| Kolhydrater | {h_data.get('kolhydrater', '-')} | {p_data.get('kolhydrater', '-')} |\n"
-                    f"|   - varav sockerarter | {h_data.get('socker', '-')} | {p_data.get('socker', '-')} |\n"
-                    f"| Fett | {h_data.get('fett', '-')} | {p_data.get('fett', '-')} |\n"
-                    f"|   - varav mättat fett | {h_data.get('mattat_fett', '-')} | {p_data.get('mattat_fett', '-')} |\n"
-                    f"| Fiber | {h_data.get('fiber', '-')} | {p_data.get('fiber', '-')} |\n"
-                    f"| Salt | {h_data.get('salt', '-')} | {p_data.get('salt', '-')} |\n"
+                    f"| Energi (kcal) | {h_data.get('energi', '-')} | {p_data.get('energi', '-')} |\n"
+                    f"| Protein (g) | {h_data.get('protein', '-')} | {p_data.get('protein', '-')} |\n"
+                    f"| Kolhydrater (g) | {h_data.get('kolhydrater', '-')} | {p_data.get('kolhydrater', '-')} |\n"
+                    f"| - varav sockerarter (g) | {h_data.get('socker', '-')} | {p_data.get('socker', '-')} |\n"
+                    f"| Fett (g) | {h_data.get('fett', '-')} | {p_data.get('fett', '-')} |\n"
+                    f"| - varav mättat fett (g) | {h_data.get('mattat_fett', '-')} | {p_data.get('mattat_fett', '-')} |\n"
+                    f"| Fiber (g) | {h_data.get('fiber', '-')} | {p_data.get('fiber', '-')} |\n"
+                    f"| Salt (g) | {h_data.get('salt', '-')} | {p_data.get('salt', '-')} |\n"
                 )
                 
                 full_text = f"{text_input}{naring_table_md}"
@@ -238,6 +239,13 @@ with flik1:
 with flik2:
     st.header("Mina sparade recept")
     
+    # Återställningsknapp för expanderade recept
+    if st.button("🔄 Stäng alla öppna recept"):
+        for key in list(st.session_state.keys()):
+            if key.startswith("expander_"):
+                del st.session_state[key]
+        st.rerun()
+    
     sokord = st.text_input("🔍 Sök i dina recept...", "", key="sok_recept")
     
     try:
@@ -256,7 +264,10 @@ with flik2:
                 kategori = r.get("kategori") or "Övrigt"
                 recept_id = r.get('id')
                 
-                with st.expander(f"📌 {titel} ({kategori})"):
+                expander_key = f"expander_{recept_id}"
+                with st.expander(f"📌 {titel} ({kategori})", expanded=expander_key in st.session_state):
+                    st.session_state[expander_key] = True
+                    
                     # Säkerställ att texten är en sträng innan vi visar den
                     text_content = r.get("text", "")
                     if text_content is None:
@@ -315,7 +326,7 @@ with flik2:
                             text_for_print = str(text_content)
                         
                         # Skapa en utskriftsknapp som öppnar utskriftsdialogen direkt
-                        if st.button(f"{PRINT_ICON} Skriv ut recept", key=f"print_{recept_id}"):
+                        if st.button(f"{PRINT_ICON} Skriv ut recept", key=f"print_{recept_id}_{int(time.time())}"):
                             # Skapa HTML för utskrift
                             print_html = f"""
                             <!DOCTYPE html>
@@ -366,11 +377,22 @@ with flik2:
                             </html>
                             """
                             
-                            # Skapa en dold iframe som öppnar utskriftsdialogen
-                            st.components.v1.html(
-                                f'<iframe srcdoc="{print_html.replace(chr(10), " ").replace(chr(13), " ").replace(chr(9), " ").replace(chr(34), "&quot;").replace(chr(39), "&#39;")}" style="width:100%; height:0; border:none; display:none;"></iframe>',
-                                height=0
-                            )
+                            # Använd olika metoder beroende på enhet
+                            user_agent = st.context.headers.get("User-Agent", "")
+                            is_mobile = "Mobile" in user_agent or "iPad" in user_agent or "Android" in user_agent or "iPhone" in user_agent
+                            
+                            if is_mobile:
+                                # Mobil: öppna i ny flik
+                                st.components.v1.html(
+                                    f'<script>window.open("data:text/html;charset=utf-8,{print_html.replace(chr(10), " ").replace(chr(13), " ").replace(chr(9), " ").replace('"', "&quot;").replace("&", "&amp;")}", "_blank");</script>',
+                                    height=0
+                                )
+                            else:
+                                # Desktop: öppna i nytt fönster
+                                st.components.v1.html(
+                                    f'<script>window.open("data:text/html;charset=utf-8,{print_html.replace(chr(10), " ").replace(chr(13), " ").replace(chr(9), " ").replace('"', "&quot;").replace("&", "&amp;")}", "_blank", "width=800,height=600");</script>',
+                                    height=0
+                                )
                     
                     if st.button(f"{DELETE_ICON} Radera recept", key=f"del_{recept_id}"):
                         supabase.table("recept").delete().eq("id", recept_id).execute()
@@ -423,7 +445,10 @@ with flik3:
                     kategori = r.get("kategori") or "Övrigt"
                     recept_id = r.get('id')
                     
-                    with st.expander(f"📌 {titel} ({kategori})"):
+                    expander_key = f"expander_{recept_id}"
+                    with st.expander(f"📌 {titel} ({kategori})", expanded=expander_key in st.session_state):
+                        st.session_state[expander_key] = True
+                        
                         # Säkerställ att texten är en sträng
                         text_content = r.get("text", "")
                         if text_content is None:
@@ -480,7 +505,7 @@ with flik3:
                                 text_for_print_d = str(text_content)
                             
                             # Skapa en utskriftsknapp som öppnar utskriftsdialogen direkt
-                            if st.button(f"{PRINT_ICON} Skriv ut recept", key=f"print_d_{recept_id}"):
+                            if st.button(f"{PRINT_ICON} Skriv ut recept", key=f"print_d_{recept_id}_{int(time.time())}"):
                                 # Skapa HTML för utskrift
                                 print_html = f"""
                                 <!DOCTYPE html>
@@ -531,11 +556,22 @@ with flik3:
                                 </html>
                                 """
                                 
-                                # Skapa en dold iframe som öppnar utskriftsdialogen
-                                st.components.v1.html(
-                                    f'<iframe srcdoc="{print_html.replace(chr(10), " ").replace(chr(13), " ").replace(chr(9), " ").replace(chr(34), "&quot;").replace(chr(39), "&#39;")}" style="width:100%; height:0; border:none; display:none;"></iframe>',
-                                    height=0
-                                )
+                                # Använd olika metoder beroende på enhet
+                                user_agent = st.context.headers.get("User-Agent", "")
+                                is_mobile = "Mobile" in user_agent or "iPad" in user_agent or "Android" in user_agent or "iPhone" in user_agent
+                                
+                                if is_mobile:
+                                    # Mobil: öppna i ny flik
+                                    st.components.v1.html(
+                                        f'<script>window.open("data:text/html;charset=utf-8,{print_html.replace(chr(10), " ").replace(chr(13), " ").replace(chr(9), " ").replace('"', "&quot;").replace("&", "&amp;")}", "_blank");</script>',
+                                        height=0
+                                    )
+                                else:
+                                    # Desktop: öppna i nytt fönster
+                                    st.components.v1.html(
+                                        f'<script>window.open("data:text/html;charset=utf-8,{print_html.replace(chr(10), " ").replace(chr(13), " ").replace(chr(9), " ").replace('"', "&quot;").replace("&", "&amp;")}", "_blank", "width=800,height=600");</script>',
+                                        height=0
+                                    )
                                 
     except Exception as e:
         st.error(f"Kunde inte hämta delade recept: {e}")
