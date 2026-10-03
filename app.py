@@ -178,7 +178,7 @@ with flik1:
             df_naring = pd.DataFrame({
                 "Näringsämne (Makros)": [
                     "⚡ Energi", "🥩 Protein", "🍞 Kolhydrater", 
-                    "└ varav sockerarter", "🥑 Fett", "└ varav mättat fett", 
+                    "  └ varav sockerarter", "🥑 Fett", "  └ varav mättat fett", 
                     "🌾 Fiber", "🧂 Salt"
                 ],
                 "Per 100 g": [
@@ -207,9 +207,9 @@ with flik1:
                     f"| ⚡ Energi | {h_data.get('energi', '-')} | {p_data.get('energi', '-')} |\n"
                     f"| 🥩 Protein | {h_data.get('protein', '-')} | {p_data.get('protein', '-')} |\n"
                     f"| 🍞 Kolhydrater | {h_data.get('kolhydrater', '-')} | {p_data.get('kolhydrater', '-')} |\n"
-                    f"| &nbsp;&nbsp;&nbsp;&nbsp;└ varav sockerarter | {h_data.get('socker', '-')} | {p_data.get('socker', '-')} |\n"
+                    f"|   └ varav sockerarter | {h_data.get('socker', '-')} | {p_data.get('socker', '-')} |\n"
                     f"| 🥑 Fett | {h_data.get('fett', '-')} | {p_data.get('fett', '-')} |\n"
-                    f"| &nbsp;&nbsp;&nbsp;&nbsp;└ varav mättat fett | {h_data.get('mattat_fett', '-')} | {p_data.get('mattat_fett', '-')} |\n"
+                    f"|   └ varav mättat fett | {h_data.get('mattat_fett', '-')} | {p_data.get('mattat_fett', '-')} |\n"
                     f"| 🌾 Fiber | {h_data.get('fiber', '-')} | {p_data.get('fiber', '-')} |\n"
                     f"| 🧂 Salt | {h_data.get('salt', '-')} | {p_data.get('salt', '-')} |\n"
                 )
@@ -314,9 +314,9 @@ with flik2:
                             st.error(f"Kunde inte förbereda utskrift: {e}")
                             text_for_print = str(text_content)
                         
-                        # Skapa en enkel utskriftsknapp utan JavaScript
+                        # Skapa en utskriftsknapp som öppnar nytt fönster
                         if st.button(f"{PRINT_ICON} Skriv ut recept", key=f"print_{recept_id}"):
-                            # Visa receptet i ett nytt fönster för utskrift
+                            # Skapa HTML för utskrift
                             print_html = f"""
                             <!DOCTYPE html>
                             <html>
@@ -325,6 +325,8 @@ with flik2:
                                 <style>
                                     body {{ font-family: Arial, sans-serif; margin: 20px; }}
                                     h1 {{ color: #333; }}
+                                    h2 {{ color: #666; }}
+                                    .no-print {{ display: none; }}
                                     @media print {{
                                         .no-print {{ display: none; }}
                                     }}
@@ -342,7 +344,11 @@ with flik2:
                             </body>
                             </html>
                             """
-                            st.markdown(print_html, unsafe_allow_html=True)
+                            # Öppna i nytt fönster
+                            st.components.v1.html(
+                                f'<script>window.open("data:text/html,{print_html.replace(chr(10), " ").replace(chr(13), " ").replace(chr(9), " ").replace('"', "&quot;")}", "_blank");</script>',
+                                height=0
+                            )
                     
                     if st.button(f"{DELETE_ICON} Radera recept", key=f"del_{recept_id}"):
                         supabase.table("recept").delete().eq("id", recept_id).execute()
@@ -451,9 +457,9 @@ with flik3:
                                 st.error(f"Kunde inte förbereda utskrift: {e}")
                                 text_for_print_d = str(text_content)
                             
-                            # Skapa en enkel utskriftsknapp utan JavaScript
+                            # Skapa en utskriftsknapp som öppnar nytt fönster
                             if st.button(f"{PRINT_ICON} Skriv ut recept", key=f"print_d_{recept_id}"):
-                                # Visa receptet i ett nytt fönster för utskrift
+                                # Skapa HTML för utskrift
                                 print_html = f"""
                                 <!DOCTYPE html>
                                 <html>
@@ -462,6 +468,8 @@ with flik3:
                                     <style>
                                         body {{ font-family: Arial, sans-serif; margin: 20px; }}
                                         h1 {{ color: #333; }}
+                                        h2 {{ color: #666; }}
+                                        .no-print {{ display: none; }}
                                         @media print {{
                                             .no-print {{ display: none; }}
                                         }}
@@ -479,7 +487,11 @@ with flik3:
                                 </body>
                                 </html>
                                 """
-                                st.markdown(print_html, unsafe_allow_html=True)
+                                # Öppna i nytt fönster
+                                st.components.v1.html(
+                                    f'<script>window.open("data:text/html,{print_html.replace(chr(10), " ").replace(chr(13), " ").replace(chr(9), " ").replace('"', "&quot;")}", "_blank");</script>',
+                                    height=0
+                                )
                                 
     except Exception as e:
         st.error(f"Kunde inte hämta delade recept: {e}")
